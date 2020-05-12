@@ -1,44 +1,68 @@
-import pickle
-import socket
-import struct
+import datetime
+from vidgear.gears import NetGear
+from vidgear.gears import WriteGear
 import cv2
+from SingleMotionDetector import SingleMotionDetector
 
-HOST = ''
-PORT = 8089
+# Determine debug mode
+IS_DEBUG = True
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print('Socket created')
+# Initialize the client that we will be connecting to
+client = NetGear(address='192.168.1.49', port='8089', receive_mode=True, protocol='tcp')
+writer = WriteGear(output_filename='Output.mp4')
 
-s.bind((HOST, PORT))
-print('Socket bind complete')
+# Initialize ml variables
+frame_number = 0
+frame_count = 32
+md = SingleMotionDetector(accumWeight=0.1)
 
-s.listen(10)
-print('Socket Listening')
 
-conn, addr = s.accept()
+def detect_motion(image, frames_passed):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (7, 7), 0)
+    # grab the current timestamp and draw it on the frame
+    timestamp = datetime.datetime.now()
+    cv2.putText(image, timestamp.strftime(
+        "%A %d %B %Y %I:%M:%S%p"), (10, image.shape[0] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+    if frames_passed > frame_count:
+        # detect motion in the image
+        motion = md.detect(gray)
+        # check to see if motion was found in the frame
+        if motion is not None:
+            # unpack the tuple and draw the box surrounding the
+            # "motion area" on the output frame
+            (thresh, (minX, minY, maxX, maxY)) = motion
+            cv2.rectangle(frame, (minX, minY), (maxX, maxY),
+                          (0, 0, 255), 2)
 
-data = b''
-payload_size = struct.calcsize("L")
+    # update the background model and return final frame
+    md.update(gray)
+    return image.copy()
 
+
+# Continue to retrieve frames from the client as long as it is broadcasting
 while True:
-    # get message size
-    while len(data) < payload_size:
-        data += conn.recv(4096)
+    frame_number += 1
+    frame = client.recv()
 
-    packed_msg_size = data[:payload_size]
-    data = data[payload_size:]
-    msg_size = struct.unpack("L", packed_msg_size)[0]
+    if frame is None:
+        break;
+    else:
+        # Perform processing on frames
+        frame = detect_motion(frame, frame_number)
 
-    # retreive message based on message size
-    while len(data) < msg_size:
-        data += conn.recv(4096)
+        # Save Video
+        writer.write(frame)
 
-    frame_data = data[:msg_size]
-    data = data[msg_size:]
+        # Show frame (for testing purposes)
+        imS = cv2.resize(frame, (960, 540))  # Resize image
+        cv2.imshow("output", imS)
 
-    # extract frame
-    frame = pickle.loads(frame_data)
+    if cv2.waitKey(1) == ord('q'):
+        break
 
-    # display
-    cv2.imshow('frame', frame)
-    cv2.waitKey(1)
+# safely close objects
+client.close()
+writer.close()
+cv2.destroyAllWindows()
