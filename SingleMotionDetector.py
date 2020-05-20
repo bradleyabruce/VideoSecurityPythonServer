@@ -10,7 +10,6 @@ class SingleMotionDetector:
     def __init__(self, accumWeight=0.5):
         # store accumulated weight factor
         self.accumWeight = accumWeight
-
         # initialize background model
         self.bg = None
 
