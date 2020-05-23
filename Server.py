@@ -13,8 +13,9 @@ class Server:
         # Determine debug mode
         self.IS_DEBUG = False
         self.camera_info = CameraInfo()
-        self.client = NetGear(address='192.168.1.34', port='8089', receive_mode=True, protocol='tcp')
-        self.md = SingleMotionDetector(accumWeight=0.1)
+        self.client = NetGear(address='192.168.1.30', port='8089', receive_mode=True, protocol='tcp')
+        self.md = SingleMotionDetector(accumWeight=0.6)
+        self.last_builder_queue = None
 
         # Directory Variables
         self.day_directory = None
@@ -71,13 +72,20 @@ class Server:
     def get_minute():
         return datetime.datetime.now().minute
 
-    def combine_videos_if_needed(self, current_minute):
-        if current_minute == 0 and self.day_directory is not None:
-            combiner_queue = Queue()
-            video_combiner = VideoCombiner.VideoCombiner(combiner_queue)
-            video_combiner.daemon = True
-            video_combiner.start()
-            combiner_queue.put((self.day_directory, current_minute))
+    def combine_videos_if_needed(self):
+        if self.day_directory is not None and self.last_builder_queue is not None:
+            # We need to wait until the hour is done before combining videos
+            if self.last_builder_queue.unfinished_tasks == 0:
+                video_hour = (datetime.datetime.now() + datetime.timedelta(hours=-1)).hour
+                full_directory = self.day_directory + "/" + str(video_hour)
+
+                combiner_queue = Queue()
+                video_combiner = VideoCombiner.VideoCombiner(combiner_queue)
+                video_combiner.daemon = True
+                video_combiner.start()
+                combiner_queue.put(full_directory)
+
+                self.last_builder_queue = None
 
     def clear_minutes_saved_if_needed(self, current_minute):
         if current_minute == self.start_minute and (len(self.minutes_saved) > 2):
@@ -95,6 +103,11 @@ class Server:
                 video_builder.start()
                 builder_queue.put((self.camera_info.image_array.copy(), self.day_directory))
 
+                # Save the builder_queue at the end of every hour
+                if current_minute == 0:
+                    self.last_builder_queue = builder_queue
+                    print("Builder queue saved.")
+
                 self.camera_info.image_array.clear()
                 self.minutes_saved.append(current_minute)
 
@@ -107,7 +120,7 @@ class Server:
             # Check time
             current_minute = datetime.datetime.now().minute
 
-            # self.combine_videos_if_needed(current_minute)
+            self.combine_videos_if_needed()
 
             # This will only create directory every night at midnight
             self.build_current_day_directory()
