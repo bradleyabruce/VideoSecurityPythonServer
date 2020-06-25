@@ -6,6 +6,7 @@ class Server:
         self.MacAddress = None
         self.InternalIPAddress = None
         self.ExternalIPAddress = None
+        self.PortNumber = None
         self.DirectoryPath = None
         self.StatusID = None
         self.IsDebug = None
@@ -14,10 +15,8 @@ class Server:
         self.client = None
         self.md = None
         self.last_builder_queue = None
-
         # Directory Variables
-        self.day_directory = None
-
+        self.full_directory = None
         # Time Variables
         self.current_minute = None
         self.previous_minute = None
@@ -39,9 +38,18 @@ class Server:
             if "ExternalIPAddress" in key:
                 self.ExternalIPAddress = value
                 continue
+            if "PortNumber" in key:
+                self.PortNumber = str(value)
+                continue
             if "DirectoryPath" in key:
                 self.DirectoryPath = value
                 continue
             if "StatusID" in key:
                 self.StatusID = value
+                continue
+            if "IsDebug" in key:
+                if value == 0 or value == 1:
+                    self.IsDebug = bool(value)
+                else:
+                    self.IsDebug = False
                 continue

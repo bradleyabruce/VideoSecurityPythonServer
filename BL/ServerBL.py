@@ -8,15 +8,19 @@ from Enums import ServerStatus
 from Objects.Server import Server
 
 
+sql_select = "SELECT s.ServerID, s.Name, s.MacAddress, s.InternalIPAddress, s.ExternalIPAddress, s.PortNumber, s.ServerStatusID, s.IsDebug, sd.DirectoryPath "
+sql_from = " FROM tServer s "
+sql_join_directory = " LEFT JOIN tServerDirectory sd ON s.ServerID = sd.ServerID "
+
 def get_local_ip():
     try:
         os = sys.platform
         local_ip = "Unavailable"
-        if os == "linux":
+        if os == "linux" or os == "win32":
             host_name = socket.gethostname()
             local_ip = socket.gethostbyname(host_name + ".local")
 
-        elif os == "darwin":
+        else:
             # MacOS
             local_ip = socket.gethostbyname_ex(socket.gethostname())[-1][0]
 
@@ -72,9 +76,9 @@ def query_values_from_db(mac_address):
     if mac_address != "Unavailable":
         # query = "SELECT s.ServerID FROM tServer s WHERE s.MacAddress = '" + mac_address + "';"
 
-        query = "SELECT s.ServerID, s.Name, s.MacAddress, s.InternalIPAddress, s.ExternalIPAddress, s.ServerStatusID, s.IsDebug, sd.DirectoryPath" \
-                " FROM tServer s" \
-                " LEFT JOIN tServerDirectory sd ON s.ServerID = sd.ServerID" \
+        query = sql_select + \
+                sql_from + \
+                sql_join_directory + \
                 " WHERE s.MacAddress = '" + mac_address + "';"
 
         result = DBConn.query_return(query)
@@ -96,15 +100,16 @@ def insert_default_values_into_db(mac_address):
         server.MacAddress = mac_address
         server.InternalIPAddress = internal_ip
         server.ExternalIPAddress = external_ip
+        server.PortNumber = 8089
         server.StatusID = ServerStatus.ServerStatus.StartingUp.value
         server.IsDebug = 0
         server.ServerID = 0
         server.DirectoryPath = ""
 
         query = "INSERT INTO tServer" \
-                " (Name, MacAddress, InternalIPAddress, ExternalIPAddress, ServerStatusID, IsDebug)" \
+                " (Name, MacAddress, InternalIPAddress, ExternalIPAddress, PortNumber, ServerStatusID, IsDebug)" \
                 " VALUES" \
-                " ('" + server.Name + "' ,'" + server.MacAddress + "', '" + server.InternalIPAddress + "', '" + server.ExternalIPAddress + "', " + str(server.StatusID) + ", " + str(server.IsDebug) + ");"
+                " ('" + server.Name + "' ,'" + server.MacAddress + "', '" + server.InternalIPAddress + "', '" + server.ExternalIPAddress + "', " + str(server.PortNumber) + ", " + str(server.StatusID) + ", " + str(server.IsDebug) + ");"
         server.ServerID = DBConn.query_update(query, True)
 
         # Insert into tServerDirectory

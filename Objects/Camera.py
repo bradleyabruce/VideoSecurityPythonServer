@@ -21,9 +21,11 @@ class Camera:
         # Machine Learning Properties
         self.frames_before_detection = 15
         self.frame_count = 0
+        self.motion_detector = None
         # video generation Properties
         self.image_array = []
         self.video_combiner_started = False
+        self.last_builder_queue = None
 
     def mapper(self, result_set):
         for key, value in result_set.items():
