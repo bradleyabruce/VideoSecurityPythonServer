@@ -21,12 +21,8 @@ def get_hour(timestamp):
 
 
 def get_file_name(timestamp):
-    if timestamp.minute != 0:
-        video_start_minute = timestamp.minute - 5
-        video_end_minute = timestamp.minute
-        return str(video_start_minute) + "-" + str(video_end_minute) + ".mp4"
-    else:
-        return "55-0.mp4"
+    previous_min = timestamp + timedelta(minutes=-1)
+    return str(previous_min.minute) + ".mp4"
 
 
 def build_video(image_array, day_directory):

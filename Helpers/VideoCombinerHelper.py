@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta
 from threading import Thread
 from moviepy.editor import *
+import natsort
 
 
 # This method will run every single hour after all the videos have been created for that hour
@@ -22,7 +23,7 @@ def combine_videos(hour_directory):
         # Remove original videos
         for file in os.listdir(full_directory):
             if file.endswith(".mp4") and "video.mp4" not in file:
-                file_path_to_remove = full_directory  + "/" + file
+                file_path_to_remove = full_directory + "/" + file
                 os.remove(file_path_to_remove)
 
 
