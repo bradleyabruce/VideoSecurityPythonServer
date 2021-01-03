@@ -1,6 +1,9 @@
 import pyodbc
+import pandas
 import configparser
 from termcolor import colored
+
+from Enums.eTransactionType import eTransactionType
 
 
 def get_data_config():
@@ -24,35 +27,43 @@ def return_connection():
         return None
 
 
-def query_return(query):
-    conn = return_connection()
-    cursor = conn.cursor(buffered=True, dictionary=True)
-    try:
-        cursor.execute(query)
-        result = cursor.fetchall()
-        return result
-    finally:
-        cursor.close()
-        conn.close()
-
-
-def query_update(query, is_insert):
+def single_query(query):
     conn = return_connection()
     cursor = conn.cursor()
+    result = None
     try:
-        cursor.execute(query)
-        conn.commit()
-        if cursor.rowcount > 0:
-            if is_insert:
-                return cursor.lastrowid
-            else:
-                return cursor.rowcount
-        else:
-            return 0
-    except Exception as e:
-        print(e)
-        return 0
+        if query.TransactionType == eTransactionType.Query:
+            # querying requires the connection instead of the cursor since we use pandas to read the data
+            result = (__query_execute(query, conn))
+        if query.TransactionType == eTransactionType.Insert:
+            result = (__insert_execute(query, cursor))
+        if query.TransactionType == eTransactionType.Update:
+            result = (__update_execute(query, cursor))
+        return result
+
+    except Exception as err:
+        # rollback sql transaction
+        conn.rollback()
+        return None
     finally:
         cursor.close()
         conn.close()
 
+
+def __query_execute(query, conn):
+    data = pandas.read_sql(sql=query.Sql, con=conn, params=query.Args)
+    return data
+
+
+def __insert_execute(query, cursor):
+    cursor.execute(query.Sql, query.Args)
+    cursor.execute("SELECT @@IDENTITY AS ID;")
+    row = cursor.fetchone()
+    cursor.commit()
+    return row[0]
+
+
+def __update_execute(query, cursor):
+    cursor.execute(query.Sql, query.Args)
+    cursor.commit()
+    return cursor.rowcount()

@@ -4,12 +4,11 @@ class Server:
         self.ServerID = 0
         self.Name = None
         self.MacAddress = None
-        self.InternalIPAddress = None
-        self.ExternalIPAddress = None
+        self.InternalAddress = None
+        self.ExternalAddress = None
         self.PortNumber = None
         self.DirectoryPath = None
         self.StatusID = None
-        self.IsDebug = None
 
         # Unmapable Properties
         self.client = None
@@ -22,34 +21,28 @@ class Server:
         self.previous_minute = None
 
     def mapper(self, result_set):
-        for key, value in result_set.items():
+        for key in result_set:
             if "ServerID" in key:
-                self.ServerID = value
+                self.ServerID = result_set.get(key)[0]
                 continue
             if "Name" in key:
-                self.Name = str(value)
+                self.Name = result_set.get(key)[0]
                 continue
             if "MacAddress" in key:
-                self.MacAddress = str(value)
+                self.MacAddress = result_set.get(key)[0]
                 continue
-            if "InternalIPAddress" in key:
-                self.InternalIPAddress = str(value)
+            if "InternalAddress" in key:
+                self.InternalAddress = result_set.get(key)[0]
                 continue
-            if "ExternalIPAddress" in key:
-                self.ExternalIPAddress = value
+            if "ExternalAddress" in key:
+                self.ExternalAddress = result_set.get(key)[0]
                 continue
             if "PortNumber" in key:
-                self.PortNumber = str(value)
+                self.PortNumber = result_set.get(key)[0]
                 continue
             if "DirectoryPath" in key:
-                self.DirectoryPath = value
+                self.DirectoryPath = result_set.get(key)[0]
                 continue
             if "StatusID" in key:
-                self.StatusID = value
-                continue
-            if "IsDebug" in key:
-                if value == 0 or value == 1:
-                    self.IsDebug = bool(value)
-                else:
-                    self.IsDebug = False
+                self.StatusID = result_set.get(key)[0]
                 continue

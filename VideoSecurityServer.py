@@ -6,12 +6,16 @@ from BL import CameraBL, ServerBL
 from MachineLearning.SingleMotionDetector import SingleMotionDetector
 import cv2
 from Helpers import VideoBuilderHelper, VideoCombinerHelper, VideoFeedRetrieverHelper
+from Enums import ServerStatus
 
 
-# Get Server info from database
 print("Initializing Server...")
 server = ServerBL.startup()
-print("Server Initialized!")
+if server is None:
+    # Set error message in db
+    ServerBL.update_server_status(server_id=None, status_id=ServerStatus.ServerStatus.Error.value)
+else:
+    print("Server Initialized!")
 
 queues = []
 
