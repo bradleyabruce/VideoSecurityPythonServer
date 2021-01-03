@@ -4,3 +4,15 @@ Jenga.mp4
 Videos/
 
 venv/
+
+BL/__pycache__/
+
+DL/__pycache__/
+
+Enums/__pycache__/
+
+Helpers/__pycache__/
+
+MachineLearning/__pycache__/
+
+Objects/__pycache__/

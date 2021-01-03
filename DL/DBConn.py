@@ -1,12 +1,24 @@
-import mysql.connector
+import pyodbc
+import configparser
 from termcolor import colored
+
+
+def get_data_config():
+    cf = configparser.ConfigParser()
+    cf.read('data.conf')
+    host = cf.get("SQLServer", "host")
+    database = cf.get("SQLServer", "database")
+    user = cf.get("SQLServer", "user")
+    password = cf.get("SQLServer", "password")
+    return host, database, user, password
 
 
 def return_connection():
     try:
-        connection = mysql.connector.connect(option_files='data.conf')
-        # print("Connecting to database - Success")
-        return connection
+        config = get_data_config()
+        conn_info = 'DRIVER={SQL Server}; SERVER=%s; DATABASE=%s; UID=%s; PWD=%s'% (config[0], config[1], config[2], config[3])
+        mssql_conn = pyodbc.connect(conn_info)
+        return mssql_conn
     except Exception as e:
         print("Connecting to database - " + colored("Failure", "red"))
         return None
