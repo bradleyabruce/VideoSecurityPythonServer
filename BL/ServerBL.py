@@ -1,6 +1,7 @@
 import socket
 import sys
 import uuid
+import time
 from requests import get
 from DL import DBConn
 from Enums import ServerStatus
@@ -49,6 +50,8 @@ def get_current_mac_address():
 
 def startup():
     try:
+        print("Initializing Server...")
+
         mac_address = get_current_mac_address()
         server = query_startup_values_from_db(mac_address)
 
@@ -130,8 +133,6 @@ def update_startup_values_into_db(server):
         update_query.Sql = "UPDATE tServers SET InternalAddress = ?, ExternalAddress = ?, ServerStatusID = ? WHERE ServerID = ?"
         update_query.Args = [str(server.InternalAddress), str(server.ExternalAddress), str(server.StatusID), str(server.ServerID)]
         updated_rows = DBConn.single_query(update_query)
-        # Updated rows will only be greater than 0 if something actually changes
-        # We have to assume that it works
         return True
     except Exception as err:
         print(err)
@@ -156,3 +157,9 @@ def update_server_status(server_id, status_id):
     except Exception as err:
         print(err)
         return False
+
+
+def attempt_repair():
+    while 0 < 1:
+        print("Awaiting repair...")
+        time.sleep(5)

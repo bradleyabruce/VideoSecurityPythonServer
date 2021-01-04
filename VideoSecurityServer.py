@@ -9,11 +9,11 @@ from Helpers import VideoBuilderHelper, VideoCombinerHelper, VideoFeedRetrieverH
 from Enums import ServerStatus
 
 
-print("Initializing Server...")
 server = ServerBL.startup()
 if server is None:
     # Set error message in db
     ServerBL.update_server_status(server_id=None, status_id=ServerStatus.ServerStatus.Error.value)
+    ServerBL.attempt_repair()
 else:
     print("Server Initialized!")
 
