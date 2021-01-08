@@ -4,7 +4,9 @@ from enum import Enum
 class ServerStatus(Enum):
     Offline = 1
     StartingUp = 2
-    WaitingForCamera = 3
-    ConnectedToCamera = 4
-    Error = 5
+    WaitingForExistingCamera = 3
+    WaitingForNewCamera = 4
+    ConnectedToCamera = 5
+    Error = 6
+
 
