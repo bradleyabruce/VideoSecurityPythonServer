@@ -21,28 +21,28 @@ class Server:
         self.previous_minute = None
 
     def mapper(self, result_set):
-        for key in result_set:
+        for key, value in result_set.items():
             if "ServerID" in key:
-                self.ServerID = result_set.get(key)[0]
+                self.ServerID = value
                 continue
             if "Name" in key:
-                self.Name = result_set.get(key)[0]
+                self.Name = value
                 continue
             if "MacAddress" in key:
-                self.MacAddress = result_set.get(key)[0]
+                self.MacAddress = value
                 continue
             if "InternalAddress" in key:
-                self.InternalAddress = result_set.get(key)[0]
+                self.InternalAddress = value
                 continue
             if "ExternalAddress" in key:
-                self.ExternalAddress = result_set.get(key)[0]
+                self.ExternalAddress = value
                 continue
             if "PortNumber" in key:
-                self.PortNumber = result_set.get(key)[0]
+                self.PortNumber = value
                 continue
             if "DirectoryPath" in key:
-                self.DirectoryPath = result_set.get(key)[0]
+                self.DirectoryPath = value
                 continue
             if "StatusID" in key:
-                self.StatusID = result_set.get(key)[0]
+                self.StatusID = value
                 continue

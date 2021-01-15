@@ -1,28 +1,17 @@
-import pyodbc
+import mysql.connector
 import pandas
-import configparser
 from termcolor import colored
-
 from Enums.eTransactionType import eTransactionType
 from Objects.Exceptions import DatabaseConnectionException
 
-
-def get_data_config():
-    cf = configparser.ConfigParser()
-    cf.read('data.conf')
-    host = cf.get("SQLServer", "host")
-    database = cf.get("SQLServer", "database")
-    user = cf.get("SQLServer", "user")
-    password = cf.get("SQLServer", "password")
-    return host, database, user, password
+# One thing to note is that the parameter marker in sql statements for MySQL is: '%s'
+# This is opposed to the parameter marker from sqlite which was '?'
 
 
 def return_connection():
     try:
-        config = get_data_config()
-        conn_info = 'DRIVER={SQL Server}; SERVER=%s; DATABASE=%s; UID=%s; PWD=%s'% (config[0], config[1], config[2], config[3])
-        mssql_conn = pyodbc.connect(conn_info)
-        return mssql_conn
+        connection = mysql.connector.connect(option_files='data.conf')
+        return connection
     except Exception as e:
         print("Connecting to database - " + colored("Failure", "red"))
         raise DatabaseConnectionException
@@ -30,18 +19,19 @@ def return_connection():
 
 def single_query(query):
     conn = return_connection()
-    cursor = conn.cursor()
+    # conn.row_factory = dict_factory
+    cursor = conn.cursor(dictionary=True)
     result = None
     try:
-        if query.TransactionType == eTransactionType.SimpleQuery:
+        if query.TransactionType == eTransactionType.Query:
             result = (__query_execute(query, cursor))
-        if query.TransactionType == eTransactionType.MultiSelectQuery:
-            # querying requires the connection instead of the cursor since we use pandas to read the data
-            result = (__multiquery_execute(query, conn))
         if query.TransactionType == eTransactionType.Insert:
             result = (__insert_execute(query, cursor))
         if query.TransactionType == eTransactionType.Update:
             result = (__update_execute(query, cursor))
+
+        # commit sql transaction
+        conn.commit()
         return result
 
     except Exception as err:
@@ -54,24 +44,22 @@ def single_query(query):
 
 def __query_execute(query, cursor):
     cursor.execute(query.Sql, query.Args)
-    rows = cursor.fetchall()
-    return rows
-
-
-def __multiquery_execute(query, conn):
-    data = pandas.read_sql(sql=query.Sql, con=conn, params=query.Args)
-    return data
+    return cursor.fetchall()
 
 
 def __insert_execute(query, cursor):
     cursor.execute(query.Sql, query.Args)
-    cursor.execute("SELECT @@IDENTITY AS ID;")
-    row = cursor.fetchone()
-    cursor.commit()
-    return row[0]
+    return cursor.lastrowid
 
 
 def __update_execute(query, cursor):
     cursor.execute(query.Sql, query.Args)
-    cursor.commit()
     return cursor.rowcount
+
+
+# This is used to help us read query results more easily
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d

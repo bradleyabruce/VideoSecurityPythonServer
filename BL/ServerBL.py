@@ -78,12 +78,12 @@ def get_server_from_mac_address(mac_address):
     server = Server()
 
     query = Query()
-    query.TransactionType = eTransactionType.MultiSelectQuery
-    query.Sql = sql_select + sql_from + " WHERE s.MacAddress = ?"
+    query.TransactionType = eTransactionType.Query
+    query.Sql = sql_select + sql_from + " WHERE s.MacAddress = %s"
     query.Args = [str(mac_address)]
     result = DBConn.single_query(query)
     if len(result) > 0:
-        server.mapper(result)
+        server.mapper(result[0])
         return server
     else:
         return None
@@ -101,7 +101,7 @@ def insert_default_values_into_db(mac_address):
 
     insert_query = Query()
     insert_query.TransactionType = eTransactionType.Insert
-    insert_query.Sql = "INSERT INTO tServers (Name, MacAddress, InternalAddress, ExternalAddress, PortNumber, ServerStatusID, DirectoryPath) VALUES (?,?,?,?,?,?,?)"
+    insert_query.Sql = "INSERT INTO tServers (Name, MacAddress, InternalAddress, ExternalAddress, PortNumber, ServerStatusID, DirectoryPath) VALUES (%s,%s,%s,%s,%s,%s,%s)"
     insert_query.Args = [str(server.Name), str(server.MacAddress), str(server.InternalAddress), str(server.ExternalAddress), str(server.PortNumber), str(server.StatusID), str(server.DirectoryPath)]
     server.ServerID = DBConn.single_query(insert_query)
 
@@ -113,7 +113,7 @@ def update_startup_values_into_db(server):
 
     update_query = Query()
     update_query.TransactionType = eTransactionType.Update
-    update_query.Sql = "UPDATE tServers SET InternalAddress = ?, ExternalAddress = ?, ServerStatusID = ? WHERE ServerID = ?"
+    update_query.Sql = "UPDATE tServers SET InternalAddress = %s, ExternalAddress = %s, ServerStatusID = %s WHERE ServerID = %s"
     update_query.Args = [str(server.InternalAddress), str(server.ExternalAddress), str(server.StatusID), str(server.ServerID)]
     DBConn.single_query(update_query)
 
@@ -127,7 +127,7 @@ def update_server_status(server_id, status_id):
 
     update_query = Query()
     update_query.TransactionType = eTransactionType.Update
-    update_query.Sql = "UPDATE tServers SET ServerStatusID = ? WHERE ServerID = ?"
+    update_query.Sql = "UPDATE tServers SET ServerStatusID = %s WHERE ServerID = %s"
     update_query.Args = [str(status_id), str(server_id)]
     DBConn.single_query(update_query)
 
