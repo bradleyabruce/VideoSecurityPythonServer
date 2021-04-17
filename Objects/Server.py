@@ -8,7 +8,7 @@ class Server:
         self.ExternalAddress = None
         self.PortNumber = None
         self.DirectoryPath = None
-        self.StatusID = None
+        self.ServerStatusID = None
 
         # Unmapable Properties
         self.client = None
@@ -43,6 +43,6 @@ class Server:
             if "DirectoryPath" in key:
                 self.DirectoryPath = value
                 continue
-            if "StatusID" in key:
-                self.StatusID = value
+            if "ServerStatusID" in key:
+                self.ServerStatusID = value
                 continue

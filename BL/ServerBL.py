@@ -1,14 +1,14 @@
 import socket
 import sys
 import uuid
-import time
 from requests import get
 from DL import DBConn
-from Enums import ServerStatus
+from Enums.ServerStatus import ServerStatus
 from Enums.eTransactionType import eTransactionType
 from Objects.Exceptions import NetworkAddressNotAvailableException, MacAddressNotAvailableException
 from Objects.Query import Query
 from Objects.Server import Server
+from datetime import datetime
 
 
 sql_select = "SELECT s.ServerID, s.Name, s.MacAddress, s.InternalAddress, s.ExternalAddress, s.PortNumber, s.ServerStatusID, s.DirectoryPath "
@@ -51,8 +51,6 @@ def get_current_mac_address():
 
 def startup():
     try:
-        print("Initializing Server...")
-
         mac_address = get_current_mac_address()
         server = get_server_from_mac_address(mac_address)
 
@@ -70,7 +68,7 @@ def startup():
     except NetworkAddressNotAvailableException:
         print("Critical Error Occurred. Network Address could not be identified.")
     except Exception as err:
-        update_server_status(server_id=None, status_id=ServerStatus.ServerStatus.Error.value)
+        update_server_status(None, ServerStatus.Error.value, "Error occurred within ServerBL.startup().")
         print(err)
 
 
@@ -96,35 +94,42 @@ def insert_default_values_into_db(mac_address):
     server.InternalAddress = get_local_ip()
     server.ExternalAddress = get_external_ip()
     server.PortNumber = 8089
-    server.StatusID = ServerStatus.ServerStatus.StartingUp.value
+    server.ServerStatusID = ServerStatus.ServerBootStart.value
     server.DirectoryPath = "/VideoSecurityServer"
 
     insert_query = Query()
     insert_query.TransactionType = eTransactionType.Insert
     insert_query.Sql = "INSERT INTO tServers (Name, MacAddress, InternalAddress, ExternalAddress, PortNumber, ServerStatusID, DirectoryPath) VALUES (%s,%s,%s,%s,%s,%s,%s)"
-    insert_query.Args = [str(server.Name), str(server.MacAddress), str(server.InternalAddress), str(server.ExternalAddress), str(server.PortNumber), str(server.StatusID), str(server.DirectoryPath)]
+    insert_query.Args = [str(server.Name), str(server.MacAddress), str(server.InternalAddress), str(server.ExternalAddress), str(server.PortNumber), str(server.ServerStatusID), str(server.DirectoryPath)]
     server.ServerID = DBConn.single_query(insert_query)
+    __insert_server_log(server.ServerID, ServerStatus.ServerBootStart.value, "Server is starting.")
 
 
 def update_startup_values_into_db(server):
     server.InternalAddress = get_local_ip()
     server.ExternalAddress = get_external_ip()
-    server.StatusID = ServerStatus.ServerStatus.StartingUp.value
+    server.ServerStatusID = ServerStatus.ServerBootStart.value
 
     update_query = Query()
     update_query.TransactionType = eTransactionType.Update
     update_query.Sql = "UPDATE tServers SET InternalAddress = %s, ExternalAddress = %s, ServerStatusID = %s WHERE ServerID = %s"
-    update_query.Args = [str(server.InternalAddress), str(server.ExternalAddress), str(server.StatusID), str(server.ServerID)]
+    update_query.Args = [str(server.InternalAddress), str(server.ExternalAddress), str(server.ServerStatusID), str(server.ServerID)]
     DBConn.single_query(update_query)
+    __insert_server_log(server.ServerID, ServerStatus.ServerBootStart.value, "Server is starting.")
 
 
-def update_server_status(server_id, status_id):
+def update_server_status(server_id, status_id, message):
     # Server ID will not always be known. If it is not passed, look it up
     if server_id is None:
         mac_address = get_current_mac_address()
         server = get_server_from_mac_address(mac_address)
         server_id = server.ServerID
 
+    __update_current_server_status(server_id, status_id)
+    __insert_server_log(server_id, status_id, message)
+
+
+def __update_current_server_status(server_id, status_id):
     update_query = Query()
     update_query.TransactionType = eTransactionType.Update
     update_query.Sql = "UPDATE tServers SET ServerStatusID = %s WHERE ServerID = %s"
@@ -132,15 +137,9 @@ def update_server_status(server_id, status_id):
     DBConn.single_query(update_query)
 
 
-def attempt_repair():
-    update_server_status(server_id=None, status_id=ServerStatus.ServerStatus.Error.value)
-    while 0 < 1:
-        print("Awaiting repair...")
-        time.sleep(5)
-
-
-def standby(server):
-    update_server_status(server.ServerID, status_id=ServerStatus.ServerStatus.WaitingForNewCamera.value)
-    while 0 < 1:
-        print("Waiting for Cameras")
-        time.sleep(5)
+def __insert_server_log(server_id, status_id, message):
+    insert_query = Query()
+    insert_query.TransactionType = eTransactionType.Insert
+    insert_query.Sql = "INSERT INTO tServerLog(ServerID, ServerStatusID, ServerMessage, LogDateTime) VALUES (%s, %s, %s, %s)"
+    insert_query.Args = [str(server_id), str(status_id), str(message), datetime.now()]
+    DBConn.single_query(insert_query)

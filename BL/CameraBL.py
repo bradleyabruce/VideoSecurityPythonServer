@@ -14,8 +14,8 @@ def get_all_cameras_for_server(server):
         cameras_array = []
 
         camera_link_query = Query()
-        camera_link_query.TransactionType = eTransactionType.SimpleQuery
-        camera_link_query.Sql ="SELECT cs.CameraID FROM tCameraServer cs WHERE cs.ServerID = ?"
+        camera_link_query.TransactionType = eTransactionType.Query
+        camera_link_query.Sql ="SELECT cs.CameraID FROM tCameraServer cs WHERE cs.ServerID = %s"
         camera_link_query.Args = [str(server.ServerID)]
 
         camera_ids_array = DBConn.single_query(camera_link_query)
@@ -41,5 +41,5 @@ def get_all_cameras_for_server(server):
 
     except Exception as err:
         print(err)
-        ServerBL.update_server_status(server.ServerID, ServerStatus.ServerStatus.Error.value)
+        ServerBL.update_server_status(server.ServerID, ServerStatus.Error.value)
         return []
